@@ -9,11 +9,13 @@ require 'xlua'
  ---- Create MLP ----
 
 mlp = nn.Sequential();  -- make a multi-layer perceptron
-inputs = 784; outputs = 10; HUs = 20; epochs=30 -- parameters
-mlp:add(nn.Linear(inputs, HUs))
-mlp:add(nn.Sigmoid())
-mlp:add(nn.Linear(HUs, outputs))
-mlp:add(nn.Sigmoid())
+epochs=30 -- parameters
+mlp:add(nn.SpatialConvultions(32, 1, 5, 5))
+mlp:add(nn.SpatialMaxPooling(5,5))
+mlp.add(nn.ReLu())
+mlp:add(nn.SpatialConvultions(64, 32, 5, 5))
+mlp:add(nn.SpatialMaxPooling(5,5))
+mlp:add(nn.ReLu())
 criterion = nn.CrossEntropyCriterion()
 print(mlp)
 
