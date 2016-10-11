@@ -9,18 +9,18 @@ require 'xlua'
  ---- Create Network ----
 
 cnn = nn.Sequential();  -- make a convultional neural net
-epochs=30 -- parameters
+outputs = 10; epochs=30 -- parameters
 -- First conv layer
-cnn:add(nn.SpatialConvolution(1, 32, 5, 5))
+cnn:add(nn.SpatialConvolution(1, 28, 5, 5))
 cnn:add(nn.ReLU())
 cnn:add(nn.SpatialMaxPooling(5,5))
 -- Second conv layer
-cnn:add(nn.SpatialConvolution(32, 64, 5, 5))
+cnn:add(nn.SpatialConvolution(28, 56, 5, 5))
 cnn:add(nn.ReLU())
 cnn:add(nn.SpatialMaxPooling(5,5))
 -- Densenly connected mlp
-cnn:add(nn.Reshape(64*7*7))
-cnn:add(nn.Linear(64*7*7, 1024))
+cnn:add(nn.Reshape(56*7*7))
+cnn:add(nn.Linear(56*7*7, 1024))
 cnn:add(nn.ReLU())
 cnn:add(nn.Linear(1024,10))
 
@@ -39,10 +39,10 @@ testData = testset.data
 testLabel = testset.label
 
 testSize = testset.size
-testInputs = torch.DoubleTensor(testSize, inputs) -- or CudaTensor for GPU training
+testInputs = torch.DoubleTensor(testSize, 28, 28) -- or CudaTensor for GPU training
 
 batchSize = trainset.size
-batchInputs = torch.DoubleTensor(batchSize, inputs) -- or CudaTensor for GPU training
+batchInputs = torch.DoubleTensor(batchSize, 28, 28) -- or CudaTensor for GPU training
 batchLabels = torch.DoubleTensor(batchSize) -- or CudaTensor for GPU training
 
 
@@ -50,13 +50,10 @@ batchLabels = torch.DoubleTensor(batchSize) -- or CudaTensor for GPU training
 
 print("\n---Loading input---\n")
 for i = 1, batchSize do
-   local input = trainData[i]:view(inputs)
+   local input = trainData[i]
    local label = (trainLabel[i] + 1)
    batchInputs[i]:copy(input)
    batchLabels[i] = label
-   if i % 100 == 0 then
-     xlua.progress(i,batchSize)
-   end
 end
 
 
