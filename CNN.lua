@@ -39,10 +39,10 @@ testData = testset.data
 testLabel = testset.label
 
 testSize = testset.size
-testInputs = torch.DoubleTensor(testSize, 28, 28) -- or CudaTensor for GPU training
+testInputs = torch.DoubleTensor(testSize, 1, 28, 28) -- or CudaTensor for GPU training
 
 batchSize = trainset.size
-batchInputs = torch.DoubleTensor(batchSize, 28, 28) -- or CudaTensor for GPU training
+batchInputs = torch.DoubleTensor(batchSize, 1, 28, 28) -- or CudaTensor for GPU training
 batchLabels = torch.DoubleTensor(batchSize) -- or CudaTensor for GPU training
 
 
@@ -52,7 +52,7 @@ print("\n---Loading input---\n")
 for i = 1, batchSize do
    local input = trainData[i]
    local label = (trainLabel[i] + 1)
-   batchInputs[i]:copy(input)
+   batchInputs[i][1]:copy(input)
    batchLabels[i] = label
 end
 
