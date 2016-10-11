@@ -6,18 +6,26 @@ require 'optim'
 require 'xlua'
 
 
- ---- Create MLP ----
+ ---- Create Network ----
 
-mlp = nn.Sequential();  -- make a multi-layer perceptron
+cnn = nn.Sequential();  -- make a convultional neural net
 epochs=30 -- parameters
-mlp:add(nn.SpatialConvultions(32, 1, 5, 5))
-mlp:add(nn.SpatialMaxPooling(5,5))
-mlp.add(nn.ReLu())
-mlp:add(nn.SpatialConvultions(64, 32, 5, 5))
-mlp:add(nn.SpatialMaxPooling(5,5))
-mlp:add(nn.ReLu())
+-- First conv layer
+cnn:add(nn.SpatialConvolution(1, 32, 5, 5))
+cnn:add(nn.ReLU())
+cnn:add(nn.SpatialMaxPooling(5,5))
+-- Second conv layer
+cnn:add(nn.SpatialConvolution(32, 64, 5, 5))
+cnn:add(nn.ReLU())
+cnn:add(nn.SpatialMaxPooling(5,5))
+-- Densenly connected mlp
+cnn:add(nn.Reshape(64*7*7))
+cnn:add(nn.Linear(64*7*7, 1024))
+cnn:add(nn.ReLU())
+cnn:add(nn.Linear(1024,10))
+
 criterion = nn.CrossEntropyCriterion()
-print(mlp)
+print(cnn)
 
 
  ---- Create Identifiers ----
@@ -54,7 +62,7 @@ end
 
  ---- Initialize Training Vars ----
 
-params, gradParams = mlp:getParameters()
+params, gradParams = cnn:getParameters()
 local optimState = {learningRate = 0.01}
 
 
@@ -65,10 +73,10 @@ for epoch = 1, epochs do
    function feval(params)
       gradParams:zero()
 
-      local outputs = mlp:forward(batchInputs)
+      local outputs = cnn:forward(batchInputs)
       local loss = criterion:forward(outputs, batchLabels)
       local dloss_doutputs = criterion:backward(outputs, batchLabels)
-      mlp:backward(batchInputs, dloss_doutputs)
+      cnn:backward(batchInputs, dloss_doutputs)
 
       return loss, gradParams
    end
@@ -85,7 +93,7 @@ err = 0
 for i = 1, testSize do
    local input = testData[i]:view(inputs)
    testInputs[i]:copy(input)
-   curr = mlp:forward(testInputs[i])
+   curr = cnn:forward(testInputs[i])
    largest = 0
    for i = 1, 10 do
      if curr[i] > largest then
