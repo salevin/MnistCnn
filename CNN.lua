@@ -13,14 +13,14 @@ outputs = 10; epochs=30 -- parameters
 -- First conv layer
 cnn:add(nn.SpatialConvolution(1, 28, 5, 5))
 cnn:add(nn.ReLU())
-cnn:add(nn.SpatialMaxPooling(5,5))
+cnn:add(nn.SpatialMaxPooling(2,2))
 -- Second conv layer
 cnn:add(nn.SpatialConvolution(28, 56, 5, 5))
 cnn:add(nn.ReLU())
-cnn:add(nn.SpatialMaxPooling(5,5))
+cnn:add(nn.SpatialMaxPooling(2,2))
 -- Densenly connected mlp
-cnn:add(nn.Reshape(56*7*7))
-cnn:add(nn.Linear(56*7*7, 1024))
+cnn:add(nn.Reshape(56*4*4)) -- Why does it have to be 4x4? why not 7x6? :(
+cnn:add(nn.Linear(56*4*4, 1024))
 cnn:add(nn.ReLU())
 cnn:add(nn.Linear(1024,10))
 
@@ -41,7 +41,7 @@ testLabel = testset.label
 testSize = testset.size
 testInputs = torch.DoubleTensor(testSize, 1, 28, 28) -- or CudaTensor for GPU training
 
-batchSize = trainset.size
+batchSize =  1000 -- trainset.size if i had more ram :( need to set up minibatches
 batchInputs = torch.DoubleTensor(batchSize, 1, 28, 28) -- or CudaTensor for GPU training
 batchLabels = torch.DoubleTensor(batchSize) -- or CudaTensor for GPU training
 
@@ -88,8 +88,8 @@ print("\n---Tests---\n")
 err = 0
 
 for i = 1, testSize do
-   local input = testData[i]:view(inputs)
-   testInputs[i]:copy(input)
+   local input = testData[i]
+   testInputs[i][1]:copy(input)
    curr = cnn:forward(testInputs[i])
    largest = 0
    for i = 1, 10 do
