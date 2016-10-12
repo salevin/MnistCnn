@@ -4,7 +4,7 @@ mnist = require 'mnist'
 require "nn"
 require 'optim'
 require 'xlua'
-
+require 'cunn'
 
  ---- Create Network ----
 
@@ -19,14 +19,16 @@ cnn:add(nn.SpatialConvolution(28, 56, 5, 5))
 cnn:add(nn.ReLU())
 cnn:add(nn.SpatialMaxPooling(2,2))
 -- Densenly connected mlp
-cnn:add(nn.Reshape(56*4*4)) -- Why does it have to be 4x4? why not 7x6? :(
+cnn:add(nn.Reshape(56*4*4)) -- Why does it have to be 4x4? why not 7x7? :(
 cnn:add(nn.Linear(56*4*4, 1024))
 cnn:add(nn.ReLU())
 cnn:add(nn.Linear(1024,10))
 cnn:add(nn.LogSoftMax())
 
-criterion = nn.CrossEntropyCriterion()
+criterion = nn.CrossEntropyCriterion():cuda()
 print(cnn)
+--cudnn.convert(cnn)
+cnn:cuda()
 
 
  ---- Create Identifiers ----
@@ -40,10 +42,10 @@ testData = testset.data
 testLabel = testset.label
 
 testSize = testset.size
-testInputs = torch.DoubleTensor(testSize, 1, 28, 28) -- or CudaTensor for GPU training
+testInputs = torch.DoubleTensor(testSize, 1, 28, 28):cuda() -- or CudaTensor for GPU training
 
 batchSize =  trainset.size 
-batchInputs = torch.DoubleTensor(batchSize, 1, 28, 28) -- or CudaTensor for GPU training
+batchInputs = torch.DoubleTensor(batchSize, 1, 28, 28):cuda() -- or CudaTensor for GPU training
 batchLabels = torch.DoubleTensor(batchSize) -- or CudaTensor for GPU training
 
 
