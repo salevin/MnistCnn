@@ -9,7 +9,7 @@ require 'xlua'
  ---- Create Network ----
 
 cnn = nn.Sequential();  -- make a convultional neural net
-outputs = 10; epochs=30 -- parameters
+outputs = 10; epochs=50; minibatches=2000 -- parameters
 -- First conv layer
 cnn:add(nn.SpatialConvolution(1, 28, 5, 5))
 cnn:add(nn.ReLU())
@@ -23,6 +23,7 @@ cnn:add(nn.Reshape(56*4*4)) -- Why does it have to be 4x4? why not 7x6? :(
 cnn:add(nn.Linear(56*4*4, 1024))
 cnn:add(nn.ReLU())
 cnn:add(nn.Linear(1024,10))
+cnn:add(nn.LogSoftMax())
 
 criterion = nn.CrossEntropyCriterion()
 print(cnn)
@@ -41,7 +42,7 @@ testLabel = testset.label
 testSize = testset.size
 testInputs = torch.DoubleTensor(testSize, 1, 28, 28) -- or CudaTensor for GPU training
 
-batchSize =  1000 -- trainset.size if i had more ram :( need to set up minibatches
+batchSize =  trainset.size 
 batchInputs = torch.DoubleTensor(batchSize, 1, 28, 28) -- or CudaTensor for GPU training
 batchLabels = torch.DoubleTensor(batchSize) -- or CudaTensor for GPU training
 
@@ -67,16 +68,24 @@ local optimState = {learningRate = 0.01}
 
 print("\n---Training---\n")
 for epoch = 1, epochs do
-   function feval(params)
-      gradParams:zero()
 
-      local outputs = cnn:forward(batchInputs)
-      local loss = criterion:forward(outputs, batchLabels)
-      local dloss_doutputs = criterion:backward(outputs, batchLabels)
-      cnn:backward(batchInputs, dloss_doutputs)
+  for minibatch = 1,batchSize,minibatches do
+     miniInputs = batchInputs[{{minibatch,minibatch+minibatches-1}}]
+     miniLabels = batchLabels[{{minibatch,minibatch+minibatches-1}}]
 
-      return loss, gradParams
-   end
+     function feval(params)
+        collectgarbage()
+
+        gradParams:zero()
+
+        local outputs = cnn:forward(miniInputs)
+        local loss = criterion:forward(outputs, miniLabels)
+        local dloss_doutputs = criterion:backward(outputs, miniLabels)
+        cnn:backward(miniInputs, dloss_doutputs)
+
+        return loss, gradParams
+     end
+  end
    optim.adam(feval, params, optimState)
    xlua.progress(epoch,epochs)
 end
@@ -91,6 +100,7 @@ for i = 1, testSize do
    local input = testData[i]
    testInputs[i][1]:copy(input)
    curr = cnn:forward(testInputs[i])
+   curr = torch.exp(curr)
    largest = 0
    for i = 1, 10 do
      if curr[i] > largest then
@@ -101,7 +111,7 @@ for i = 1, testSize do
    if num ~= testLabel[i] then
      err = err + 1
    end
-   if i % 100 == 0 then
+   if i % 10 == 0 then
      xlua.progress(i,testSize)
    end
 end
@@ -109,6 +119,6 @@ end
 
  ---- Ouput Info ----
  
-print("error is: ", (err/testSize)*10, "%")
+print("error is: ", (err/testSize)*100, "%")
 
 
