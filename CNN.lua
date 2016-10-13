@@ -46,7 +46,7 @@ testInputs = torch.DoubleTensor(testSize, 1, 28, 28):cuda() -- or CudaTensor for
 
 batchSize =  trainset.size 
 batchInputs = torch.DoubleTensor(batchSize, 1, 28, 28):cuda() -- or CudaTensor for GPU training
-batchLabels = torch.DoubleTensor(batchSize) -- or CudaTensor for GPU training
+batchLabels = torch.DoubleTensor(batchSize):cuda() -- or CudaTensor for GPU training
 
 
  ---- Load Data ----
