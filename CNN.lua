@@ -9,7 +9,7 @@ require 'cunn'
  ---- Create Network ----
 
 cnn = nn.Sequential();  -- make a convultional neural net
-outputs = 10; epochs=50; minibatches=2000 -- parameters
+outputs = 10; epochs=2000; minibatches=1000 -- parameters
 -- First conv layer
 cnn:add(nn.SpatialConvolution(1, 28, 5, 5))
 cnn:add(nn.ReLU())
@@ -19,7 +19,7 @@ cnn:add(nn.SpatialConvolution(28, 56, 5, 5))
 cnn:add(nn.ReLU())
 cnn:add(nn.SpatialMaxPooling(2,2))
 -- Densenly connected mlp
-cnn:add(nn.Reshape(56*4*4)) -- Why does it have to be 4x4? why not 7x7? :(
+cnn:add(nn.Reshape(56*4*4)) 
 cnn:add(nn.Linear(56*4*4, 1024))
 cnn:add(nn.ReLU())
 cnn:add(nn.Linear(1024,10))
@@ -47,6 +47,8 @@ testInputs = torch.DoubleTensor(testSize, 1, 28, 28):cuda() -- or CudaTensor for
 batchSize =  trainset.size 
 batchInputs = torch.DoubleTensor(batchSize, 1, 28, 28):cuda() -- or CudaTensor for GPU training
 batchLabels = torch.DoubleTensor(batchSize):cuda() -- or CudaTensor for GPU training
+miniLabels = torch.DoubleTensor(minibatches):cuda()
+miniInputs = torch.DoubleTensor(minibatches, 1, 28, 28):cuda()
 
 
  ---- Load Data ----
@@ -98,11 +100,22 @@ print("\n---Tests---\n")
 
 err = 0
 
+p =testSize/8
+
 for i = 1, testSize do
    local input = testData[i]
    testInputs[i][1]:copy(input)
    curr = cnn:forward(testInputs[i])
    curr = torch.exp(curr)
+   if i % p == 0 then
+     print(curr)
+     print(testLabel[i])
+     print(i)
+     print("-----------------------------------")
+     print()
+   end
+   if i % 10000 then
+   end
    largest = 0
    for i = 1, 10 do
      if curr[i] > largest then
