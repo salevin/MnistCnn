@@ -11,16 +11,16 @@ require 'cunn'
 cnn = nn.Sequential();  -- make a convultional neural net
 outputs = 10; epochs=80; minibatches=1000 -- parameters
 -- First conv layer
-cnn:add(nn.SpatialConvolution(1, 28, 5, 5, 1, 1, 2))
+cnn:add(nn.SpatialConvolution(1, 32, 5, 5, 1, 1, 2))
 cnn:add(nn.ReLU())
 cnn:add(nn.SpatialMaxPooling(2,2))
 -- Second conv layer
-cnn:add(nn.SpatialConvolution(28, 56, 5, 5, 1, 1, 2))
+cnn:add(nn.SpatialConvolution(32, 64, 5, 5, 1, 1, 2))
 cnn:add(nn.ReLU())
 cnn:add(nn.SpatialMaxPooling(2,2))
 -- Densenly connected mlp
-cnn:add(nn.Reshape(56*7*7)) 
-cnn:add(nn.Linear(56*7*7, 1024))
+cnn:add(nn.Reshape(64*7*7)) 
+cnn:add(nn.Linear(64*7*7, 1024))
 cnn:add(nn.ReLU())
 cnn:add(nn.Linear(1024,10))
 cnn:add(nn.LogSoftMax())
