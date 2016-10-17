@@ -9,7 +9,7 @@ require 'cunn'
  ---- Create Network ----
 
 cnn = nn.Sequential();  -- make a convultional neural net
-outputs = 10; epochs=80; minibatches=1000 -- parameters
+outputs = 10; epochs=20000; minibatches=50 -- parameters
 -- First conv layer
 cnn:add(nn.SpatialConvolution(1, 32, 5, 5, 1, 1, 2))
 cnn:add(nn.ReLU())
@@ -23,6 +23,7 @@ cnn:add(nn.Reshape(64*7*7))
 cnn:add(nn.Linear(64*7*7, 1024))
 cnn:add(nn.ReLU())
 cnn:add(nn.Linear(1024,10))
+cnn:add(nn.Dropout())
 cnn:add(nn.LogSoftMax())
 
 criterion = nn.CrossEntropyCriterion():cuda()
@@ -44,9 +45,9 @@ testLabel = testset.label
 testSize = testset.size
 testInputs = torch.DoubleTensor(testSize, 1, 28, 28):cuda() -- or CudaTensor for GPU training
 
-batchSize =  trainset.size 
-batchInputs = torch.DoubleTensor(batchSize, 1, 28, 28):cuda() -- or CudaTensor for GPU training
-batchLabels = torch.DoubleTensor(batchSize):cuda() -- or CudaTensor for GPU training
+trainSize =  trainset.size 
+batchInputs = torch.DoubleTensor(trainSize, 1, 28, 28):cuda() -- or CudaTensor for GPU training
+batchLabels = torch.DoubleTensor(trainSize):cuda() -- or CudaTensor for GPU training
 miniLabels = torch.DoubleTensor(minibatches):cuda()
 miniInputs = torch.DoubleTensor(minibatches, 1, 28, 28):cuda()
 
@@ -54,7 +55,7 @@ miniInputs = torch.DoubleTensor(minibatches, 1, 28, 28):cuda()
  ---- Load Data ----
 
 print("\n---Loading input---\n")
-for i = 1, batchSize do
+for i = 1, trainSize do
    local input = trainData[i]
    local label = (trainLabel[i] + 1)
    batchInputs[i][1]:copy(input)
@@ -65,7 +66,7 @@ end
  ---- Initialize Training Vars ----
 
 params, gradParams = cnn:getParameters()
-local optimState = {learningRate = 0.01}
+local optimState = {learningRate = 0.0001}
 
 
  ---- Start Training ----
@@ -73,7 +74,7 @@ local optimState = {learningRate = 0.01}
 print("\n---Training---\n")
 for epoch = 1, epochs do
 
-  for minibatch = 1,batchSize,minibatches do
+  for minibatch = 1,trainSize,minibatches do
      miniInputs = batchInputs[{{minibatch,minibatch+minibatches-1}}]
      miniLabels = batchLabels[{{minibatch,minibatch+minibatches-1}}]
 
@@ -102,20 +103,13 @@ err = 0
 
 p =testSize/8
 
+cnn:evaluate()
+
 for i = 1, testSize do
    local input = testData[i]
    testInputs[i][1]:copy(input)
    curr = cnn:forward(testInputs[i])
    curr = torch.exp(curr)
-   if i % p == 0 then
-     print(curr)
-     print(testLabel[i])
-     print(i)
-     print("-----------------------------------")
-     print()
-   end
-   if i % 10000 then
-   end
    largest = 0
    for i = 1, 10 do
      if curr[i] > largest then
@@ -126,6 +120,15 @@ for i = 1, testSize do
    if num ~= testLabel[i] then
      err = err + 1
    end
+   if i % p == 0 then
+     print(curr)
+     print(testLabel[i])
+     print(num)
+     print(i)
+     print("-----------------------------------")
+     print()
+   end
+
    if i % 10 == 0 then
      xlua.progress(i,testSize)
    end
