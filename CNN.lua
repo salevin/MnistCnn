@@ -9,7 +9,7 @@ require 'cunn'
  ---- Create Network ----
 
 cnn = nn.Sequential();  -- make a convultional neural net
-outputs = 10; epochs=20000; minibatches=50 -- parameters
+outputs = 10; epochs=20; miniSize=50 -- parameters
 -- First conv layer
 cnn:add(nn.SpatialConvolution(1, 32, 5, 5, 1, 1, 2))
 cnn:add(nn.ReLU())
@@ -19,7 +19,7 @@ cnn:add(nn.SpatialConvolution(32, 64, 5, 5, 1, 1, 2))
 cnn:add(nn.ReLU())
 cnn:add(nn.SpatialMaxPooling(2,2))
 -- Densenly connected mlp
-cnn:add(nn.Reshape(64*7*7)) 
+cnn:add(nn.Reshape(64*7*7))
 cnn:add(nn.Linear(64*7*7, 1024))
 cnn:add(nn.ReLU())
 cnn:add(nn.Linear(1024,10))
@@ -45,11 +45,11 @@ testLabel = testset.label
 testSize = testset.size
 testInputs = torch.DoubleTensor(testSize, 1, 28, 28):cuda() -- or CudaTensor for GPU training
 
-trainSize =  trainset.size 
+trainSize =  trainset.size
 batchInputs = torch.DoubleTensor(trainSize, 1, 28, 28):cuda() -- or CudaTensor for GPU training
 batchLabels = torch.DoubleTensor(trainSize):cuda() -- or CudaTensor for GPU training
-miniLabels = torch.DoubleTensor(minibatches):cuda()
-miniInputs = torch.DoubleTensor(minibatches, 1, 28, 28):cuda()
+miniLabels = torch.DoubleTensor(miniSize):cuda()
+miniInputs = torch.DoubleTensor(miniSize, 1, 28, 28):cuda()
 
 
  ---- Load Data ----
@@ -62,21 +62,30 @@ for i = 1, trainSize do
    batchLabels[i] = label
 end
 
-
  ---- Initialize Training Vars ----
 
 params, gradParams = cnn:getParameters()
 local optimState = {learningRate = 0.0001}
 
 
+ ---- Record Confusion ----
+-- confusion = optim.ConfusionMatrix(ouputs)
+
+ ---- Log results ----
+-- trainLogger = optim.Logger(paths.concat(opt.save, 'train.log'))
+-- testLogger = optim.Logger(paths.concat(opt.save, 'test.log'))
+
  ---- Start Training ----
 
 print("\n---Training---\n")
 for epoch = 1, epochs do
 
-  for minibatch = 1,trainSize,minibatches do
-     miniInputs = batchInputs[{{minibatch,minibatch+minibatches-1}}]
-     miniLabels = batchLabels[{{minibatch,minibatch+minibatches-1}}]
+  print(string.format("\n---Epoch %s / %s---", epoch, epochs))
+  avgErr = 0
+
+  for minibatch = 1,trainSize,miniSize do
+     miniInputs = batchInputs[{{minibatch,minibatch+miniSize-1}}]
+     miniLabels = batchLabels[{{minibatch,minibatch+miniSize-1}}]
 
      function feval(params)
         collectgarbage()
@@ -90,9 +99,11 @@ for epoch = 1, epochs do
 
         return loss, gradParams
      end
+  _, fs = optim.adam(feval, params, optimState)
+  xlua.progress((minibatch-1)/miniSize,trainSize/miniSize)
+  avgErr = avgErr + fs[1]
   end
-   optim.adam(feval, params, optimState)
-   xlua.progress(epoch,epochs)
+  print(string.format("\nAverage cross entropy error was %s", avgErr/(trainSize/miniSize)))
 end
 
  ---- Start Testing ----
@@ -101,9 +112,10 @@ print("\n---Tests---\n")
 
 err = 0
 
-p =testSize/8
+p =testSize/20
 
 cnn:evaluate()
+print(cnn)
 
 for i = 1, testSize do
    local input = testData[i]
@@ -129,14 +141,11 @@ for i = 1, testSize do
      print()
    end
 
-   if i % 10 == 0 then
-     xlua.progress(i,testSize)
-   end
 end
 
 
  ---- Ouput Info ----
- 
+
 print("error is: ", (err/testSize)*100, "%")
 
 
